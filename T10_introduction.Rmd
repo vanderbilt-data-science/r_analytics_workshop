@@ -129,21 +129,19 @@ Before we go any further, let's make sure you've got a solid foundation in runni
 Let's review some basics. You can use R as a calculator:
 
 ```{r}
-1 / 200 * 30
-(59 + 73 + 2) / 3
-sin(pi / 2)
+
 ```
 
 You can create new objects with `<-`:
 
 ```{r}
-x <- 3 * 4
+
 ```
 
 All R statements where you create objects, __assignment__ statements, have the same form:
 
 ```{r eval = FALSE}
-object_name <- value
+
 ```
 
 When reading that code say "object name gets value" in your head.
@@ -155,10 +153,8 @@ You will make lots of assignments and `<-` is a pain to type. Don't be lazy and 
 Object names must start with a letter, and can only contain letters, numbers, `_` and `.`. You want your object names to be descriptive, so you'll need a convention for multiple words. I recommend __snake_case__ where you separate lowercase words with `_`. 
 
 ```{r, eval = FALSE}
-i_use_snake_case
-otherPeopleUseCamelCase
-some.people.use.periods
-And_aFew.People_RENOUNCEconvention
+
+
 ```
 
 We'll come back to code style later, in [functions].
@@ -167,12 +163,13 @@ You can inspect an object by typing its name:
 
 ```{r}
 x
+
 ```
 
 Make another assignment:
 
 ```{r}
-this_is_a_really_long_name <- 2.5
+
 ```
 
 To inspect this object, try out RStudio's completion facility: type "this", press TAB, add characters until you have a unique prefix, then press return.
@@ -182,16 +179,13 @@ Ooops, you made a mistake! `this_is_a_really_long_name` should have value 3.5 no
 Make yet another assignment:
 
 ```{r}
-r_rocks <- 2 ^ 3
+
 ```
 
 Let's try to inspect it:
 
 ```{r, eval = FALSE}
-r_rock
-#> Error: object 'r_rock' not found
-R_rocks
-#> Error: object 'R_rocks' not found
+
 ```
 
 There's an implied contract between you and R: it will do the tedious computation for you, but in return, you must be completely precise in your instructions. Typos matter. Case matters.
@@ -208,31 +202,26 @@ Let's try using `seq()` which makes regular **seq**uences of numbers and, while 
 Press TAB once more when you've selected the function you want. RStudio will add matching opening (`(`) and closing (`)`) parentheses for you. Type the arguments `1, 10` and hit return.
 
 ```{r}
-seq(1, 10)
+
 ```
 
 Type this code and notice you get similar assistance with the paired quotation marks:
 ```{r}
-x <- "hello world"
-```
 
-Quotation marks and parentheses must always come in a pair. RStudio does its best to help you, but it's still possible to mess up and end up with a mismatch. If this happens, R will show you the continuation character "+":
 
 ```
-> x <- "hello
-+
-```
-The `+` tells you that R is waiting for more input; it doesn't think you're done yet. Usually that means you've forgotten either a `"` or a `)`. Either add the missing pair, or press ESCAPE to abort the expression and try again.
+
 If you make an assignment, you don't get to see the value. You're then tempted to immediately double-check the result:
 
 ```{r}
-y <- seq(1, 10, length.out = 5)
-y
+
+
 ```
 
 This common action can be shortened by surrounding the assignment with parentheses, which causes assignment and "print to screen" to happen.
 ```{r}
-(y <- seq(1, 10, length.out = 5))
+
+
 ```
 
 Now look at your environment in the upper right pane:

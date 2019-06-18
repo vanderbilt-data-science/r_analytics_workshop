@@ -132,25 +132,16 @@ A variable can be both a primary key _and_ a foreign key. For example, `origin` 
 Once you've identified the primary keys in your tables, it's good practice to verify that they do indeed uniquely identify each observation. One way to do that is to `count()` the primary keys and look for entries where `n` is greater than one:
 
 ```{r}
-planes %>% 
-  count(tailnum) %>% 
-  filter(n > 1)
 
-weather %>% 
-  count(year, month, day, hour, origin) %>% 
-  filter(n > 1)
+
+
 ```
 
 Sometimes a table doesn't have an explicit primary key: each row is an observation, but no combination of variables reliably identifies it. For example, what's the primary key in the `flights` table? You might think it would be the date plus the flight or tail number, but neither of those are unique:
 
 ```{r}
-flights %>% 
-  count(year, month, day, flight) %>% 
-  filter(n > 1)
 
-flights %>% 
-  count(year, month, day, tailnum) %>% 
-  filter(n > 1)
+
 ```
 
 When starting to work with this data, I had naively assumed that each flight number would be only used once per day: that would make it much easier to communicate problems with a specific flight. Unfortunately that is not the case! If a table lacks a primary key, it's sometimes useful to add one with `mutate()` and `row_number()`. That makes it easier to match observations if you've done some filtering and want to check back in with the original data. This is called a __surrogate key__.
@@ -168,9 +159,7 @@ The first tool we'll look at for combining a pair of tables is the __mutating jo
 Like `mutate()`, the join functions add variables to the right, so if you have a lot of variables already, the new variables won't get printed out. For these examples, we'll make it easier to see what's going on in the examples by creating a narrower dataset:
 
 ```{r}
-flights2 <- flights %>% 
-  select(year:day, hour, origin, dest, tailnum, carrier)
-flights2
+
 ```
 
 (Remember, when you're in RStudio, you can also use `View()` to avoid this problem.)
@@ -178,20 +167,10 @@ flights2
 Imagine you want to add the full airline name to the `flights2` data. You can combine the `airlines` and `flights2` data frames with `left_join()`:
 
 ```{r}
-flights2 %>%
-  select(-origin, -dest) %>% 
-  left_join(airlines, by = "carrier")
+
+
 ```
 
-The result of joining airlines to flights2 is an additional variable: `name`. This is why I call this type of join a mutating join. In this case, you could have got to the same place using `mutate()` and R's base subsetting:
-
-```{r}
-flights2 %>%
-  select(-origin, -dest) %>% 
-  mutate(name = airlines$name[match(carrier, airlines$carrier)])
-```
-
-But this is hard to generalise when you need to match multiple variables, and takes close reading to figure out the overall intent.
 
 The following sections explain, in detail, how mutating joins work. You'll start by learning a useful visual representation of joins. We'll then use that to explain the four mutating join functions: the inner join, and the three outer joins. When working with real data, keys don't always uniquely identify observations, so next we'll talk about what happens when there isn't a unique match. Finally, you'll learn how to tell dplyr which variables are the keys for a given join.
 
@@ -246,8 +225,8 @@ knitr::include_graphics("diagrams/join-inner.png")
 The output of an inner join is a new data frame that contains the key, the x values, and the y values. We use `by` to tell dplyr which variable is the key:
 
 ```{r}
-x %>% 
-  inner_join(y, by = "key")
+
+
 ```
 
 The most important property of an inner join is that unmatched rows are not included in the result. This means that generally inner joins are usually not appropriate for use in analysis because it's too easy to lose observations.
@@ -348,10 +327,9 @@ So far, the pairs of tables have always been joined by a single variable, and th
 Exercise: 
 I want to know what the weather was for each flight.
 
-    ```{r}
-    flights2 %>% 
-      left_join(weather)
-    ```
+```{r}
+    
+```
 
   * A character vector, `by = "x"`. This is like a natural join, but uses only
     some of the common variables. 
@@ -360,10 +338,10 @@ Exercise:
 I want to have details on the particular type of aircraft used for a flight.
     
 
-    ```{r}
-    flights2 %>% 
-      left_join(planes)
-    ```
+```{r}
+    
+
+```
 
 What went wrong? 
 
@@ -393,11 +371,8 @@ How do I fix it?
     need to specify which one we want to join to:
 
     ```{r}
-    flights2 %>% 
-      left_join(airports, c("dest" = "faa"))
     
-    flights2 %>% 
-      left_join(airports, c("origin" = "faa"))
+    
     ```
 
 ### Exercises
@@ -419,17 +394,14 @@ Filtering joins match observations in the same way as mutating joins, but affect
 Semi-joins are useful for matching filtered summary tables back to the original rows. For example, imagine you've found the top ten most popular destinations:
 
 ```{r}
-top_dest <- flights %>%
-  count(dest, sort = TRUE) %>%
-  head(10)
-top_dest
+
 ```
 
 Now you want to find each flight that went to one of those destinations. You could construct a filter yourself:
 
 ```{r}
-flights %>% 
-  filter(dest %in% top_dest$dest)
+
+
 ```
 
 But it's difficult to extend that approach to multiple variables. For example, imagine that you'd found the 10 days with highest average delays. How would you construct the filter statement that used `year`, `month`, and `day` to match it back to `flights`?
@@ -437,8 +409,8 @@ But it's difficult to extend that approach to multiple variables. For example, i
 Instead you can use a semi-join, which connects the two tables like a mutating join, but instead of adding new columns, only keeps the rows in `x` that have a match in `y`:
 
 ```{r}
-flights %>% 
-  semi_join(top_dest)
+
+
 ```
 
 Graphically, a semi-join looks like this:
@@ -462,9 +434,8 @@ knitr::include_graphics("diagrams/join-anti.png")
 Anti-joins are useful for diagnosing join mismatches. For example, when connecting `flights` and `planes`, you might be interested to know that there are many `flights` that don't have a match in `planes`:
 
 ```{r}
-flights %>%
-  anti_join(planes, by = "tailnum") %>%
-  count(tailnum, sort = TRUE)
+
+
 ```
 
 ### Exercises
