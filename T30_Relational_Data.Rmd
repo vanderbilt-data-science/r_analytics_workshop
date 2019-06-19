@@ -13,6 +13,7 @@ Move data from package environment to global environment:
 ```{r}
 library(tidyverse)
 library(nycflights13)
+library(haven)
 
 airlines <- nycflights13::airlines
 airports <- nycflights13::airports
@@ -20,6 +21,17 @@ flights <- nycflights13::flights
 planes <- nycflights13::planes
 weather <- nycflights13::weather
 ```
+
+Let's save our data to practice reading it in.
+
+```{r}
+write_csv(flights, "data/flights.csv")
+write_delim(weather, "data/weather.txt", delim = "|")
+write_dta(planes, "data/planes.dta")
+write_excel_csv(airports, "data/airports.csv")
+
+```
+
 
 
 ## Introduction
