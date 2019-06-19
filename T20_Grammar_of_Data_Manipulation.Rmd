@@ -34,7 +34,7 @@ Take careful note of the conflicts message that's printed when you load the tidy
 To explore the basic data manipulation verbs of dplyr, we'll use `nycflights13::flights`. This data frame contains all 336,776 flights that departed from New York City in 2013. The data comes from the US [Bureau of Transportation Statistics](http://www.transtats.bts.gov/DatabaseInfo.asp?DB_ID=120&Link=0), and is documented in `?flights`.
 
 ```{r}
-
+flights
 ```
 
 You might notice that this data frame prints a little differently from other data frames you might have used in the past: it only shows the first few rows and all the columns that fit on one screen. (To see the whole dataset, you can run `View(flights)` which will open the dataset in the RStudio viewer). It prints differently because it's a __tibble__. Tibbles are data frames, but slightly tweaked to work better in the tidyverse. For now, you don't need to worry about the differences; we'll come back to tibbles in more detail in [wrangle](#wrangle-intro).
@@ -86,22 +86,23 @@ Together these properties make it easy to chain together multiple simple steps t
 `filter()` allows you to subset observations based on their values. The first argument is the name of the data frame. The second and subsequent arguments are the expressions that filter the data frame. For example, we can select all flights on January 1st with:
 
 ```{r}
-
+flights <- flights
+filter(flights, month == 1, day == 1)
 ```
 
 When you run that line of code, dplyr executes the filtering operation and returns a new data frame. dplyr functions never modify their inputs, so if you want to save the result, you'll need to use the assignment operator, `<-`:
 
 ```{r}
-
+jan1 <- filter(flights, month == 1, day == 1)
 ```
 
 
 *EXERCISE*
 
-Filter out flights for December 12. 
+How many flights left on December 12. 
 
 ```{r}
-
+filter(flights, month == 12, day == 12)
 ```
 
 
@@ -117,7 +118,7 @@ knitr::include_graphics("diagrams/transform-logical.png")
 The following code finds all flights that departed in November or December:
 
 ```{r, eval = FALSE}
-
+filter(flights, month == 11 | month == 12)
 ```
 
 The order of operations doesn't work like English. You can't write `filter(flights, month == 11 | 12)`, which you might literally translate into  "finds all flights that departed in November or December". Instead it finds all months that equal `11 | 12`, an expression that evaluates to `TRUE`. In a numeric context (like here), `TRUE` becomes one, so this finds all flights in January, not November or December. This is quite confusing!
@@ -143,7 +144,7 @@ As well as `&` and `|`, R also has `&&` and `||`. Don't use them here! You'll le
 How many flights had arrival delays between one and two hours? 
 
 ```{r}
-
+filter(flights, arr_delay>=60, arr_delay<=120)
 ```
 
 
@@ -203,7 +204,15 @@ If you want to determine if a value is missing, use `is.na()`:
 1.  Find all flights that
 
     1. Departed in summer (July, August, and September)
+```{r}
+filter(flights, month == 7 | month == 8 | month == 9)
+```
+
     1. Arrived more than two hours late, but didn't leave late
+```{r}
+filter(flights, arr_delay > 120, dep_delay<=0)
+```
+
     1. Were delayed by at least an hour, but made up over 30 minutes in flight
     1. Departed between midnight and 6am (inclusive)
 
@@ -220,14 +229,15 @@ If you want to determine if a value is missing, use `is.na()`:
 `arrange()` works similarly to `filter()` except that instead of selecting rows, it changes their order. It takes a data frame and a set of column names (or more complicated expressions) to order by. If you provide more than one column name, each additional column will be used to break ties in the values of preceding columns:
 
 ```{r}
-
+arrange(flights, year, month, day)
 
 ```
 
 Use `desc()` to re-order by a column in descending order:
 
 ```{r}
-
+arrange(flights, desc(dep_delay)) %>% 
+  select(dep_delay)
 
 ```
 
@@ -251,7 +261,7 @@ It's not uncommon to get datasets with hundreds or even thousands of variables. 
 `select()` is not terribly useful with the flights data because we only have 19 variables, but you can still get the general idea:
 
 ```{r}
-
+flights(year, tailnum:hour)
 
 
 ```
@@ -299,14 +309,20 @@ Besides selecting sets of existing columns, it's often useful to add new columns
 `mutate()` always adds new columns at the end of your dataset so we'll start by creating a narrower dataset so we can see the new variables. Remember that when you're in RStudio, the easiest way to see all the columns is `View()`.
 
 ```{r}
-
+flights_sml <- select(flights,
+                      year:day,
+                      ends_with("delay"),
+                      distance,
+                      air_time, 
+                      hour)
 
 ```
 
 Note that you can refer to columns that you've just created:
 
 ```{r}
-
+flight <- mutate(flights,
+       gain = dep_delay - arr_delay)
 
 ```
 

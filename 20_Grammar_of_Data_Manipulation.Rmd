@@ -1,6 +1,8 @@
 ---
 title: "20_grammar_of_data_manipulation"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # Grammar of Data Manipulation
