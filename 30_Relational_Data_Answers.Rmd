@@ -13,7 +13,6 @@ Move data from package environment to global environment:
 ```{r}
 library(tidyverse)
 library(nycflights13)
-library(haven)
 
 airlines <- nycflights13::airlines
 airports <- nycflights13::airports
@@ -21,18 +20,6 @@ flights <- nycflights13::flights
 planes <- nycflights13::planes
 weather <- nycflights13::weather
 ```
-
-Let's save our data to practice reading it in.
-
-```{r}
-write_csv(flights, "data/flights.csv")
-write_delim(weather, "data/weather.txt", delim = "|")
-write_dta(planes, "data/planes.dta")
-write_excel_csv(airports, "data/airports.csv")
-
-```
-
-Read 
 
 
 ## Introduction
@@ -65,16 +52,16 @@ We will use the nycflights13 package to learn about relational data. nycflights1
 *   `airlines` lets you look up the full carrier name from its abbreviated
     code:
 
-    ```{r}
-    airlines
-    ```
+```{r}
+airlines
+```
 
 *   `airports` gives information about each airport, identified by the `faa`
     airport code:
 
-    ```{r}
-    airports
-    ```
+```{r}
+airports
+```
 
 *   `planes` gives information about each plane, identified by its `tailnum`:
 
@@ -113,18 +100,61 @@ For nycflights13:
 1.  Imagine you wanted to draw (approximately) the route each plane flies from
     its origin to its destination. What variables would you need? What tables
     would you need to combine?
+    
+Drawing the routes requires the latitude and longitude of the origin and the destination airports of each flight. This requires the flights and airports tables. The flights table has the origin (origin) and destination (dest) airport of each flight. The airports table has the longitude (lon) and latitude (lat) of each airport. To get the latitude and longitude for the origin and destination of each flight, requires two joins for flights to airports, once for the latitude and longitude of the origin airport, and once for the latitude and longitude of the destination airport. I use an inner join in order to drop any flights with missing airports since they will not have a longitude or latitude.
+
+flights_latlon <- flights %>%
+  inner_join(select(airports, origin = faa, origin_lat = lat, origin_lon = lon),
+    by = "origin"
+  ) %>%
+  inner_join(select(airports, dest = faa, dest_lat = lat, dest_lon = lon),
+    by = "dest"
+  )
+This plots the approximate flight paths of the first 100 flights in the flights dataset.
+
+flights_latlon %>%
+  slice(1:100) %>%
+  ggplot(aes(
+    x = origin_lon, xend = dest_lon,
+    y = origin_lat, yend = dest_lat
+  )) +
+  borders("state") +
+  geom_segment(arrow = arrow(length = unit(0.1, "cm"))) +
+  coord_quickmap() +
+  labs(y = "Latitude", x = "Longitude")
+
 
 1.  I forgot to draw the relationship between `weather` and `airports`.
     What is the relationship and how should it appear in the diagram?
+
+The column airports$faa is a foreign key of weather$origin. The following drawing updates the one in Section 13.2 to include this relation. The line representing the new relation between weather and airports is colored black. The lines representing the old relations are gray and thinner.
 
 1.  `weather` only contains information for the origin (NYC) airports. If
     it contained weather records for all airports in the USA, what additional
     relation would it define with `flights`?
 
+If the weather was included for all airports in the US, then it would provide the weather for the destination of each flight. The weather data frame columns (year, month, day, hour, origin) are a foreign key for the flights data frame columns (year, month, day, hour, dest). This would provide information about the weather at the destination airport at the time of the flight take off, unless the arrival date-time were calculated.
+
+So why was this not a relationship prior to adding additional rows to the weather table? In a foreign key relationship, the collection columns of columns in the child table must refer to a unique collection of columns in the parent table. When the weather table only contained New York airports, there were many values of (year, month, day, hour, dest) in flights that did not appear in the weather table. Therefore, it was not a foreign key. It was only after all combinations of year, month, day, hour, and airports that are defined in flights were added to the weather table that there existed this relation between these tables.
+
+
+
 1.  We know that some days of the year are "special", and fewer people than
     usual fly on them. How might you represent that data as a data frame?
     What would be the primary keys of that table? How would it connect to the
     existing tables?
+
+I would add a table of special dates, similar to the following table.
+
+special_days <- tribble(
+  ~year, ~month, ~day, ~holiday,
+  2013, 01, 01, "New Years Day",
+  2013, 07, 04, "Independence Day",
+  2013, 11, 29, "Thanksgiving Day",
+  2013, 12, 25, "Christmas Day"
+)
+The primary key of the table would be the (year, month, day) columns. The (year, month, day) columns could be used to join special_days with other tables.
+
 
 ## Keys
 
@@ -145,16 +175,25 @@ A variable can be both a primary key _and_ a foreign key. For example, `origin` 
 Once you've identified the primary keys in your tables, it's good practice to verify that they do indeed uniquely identify each observation. One way to do that is to `count()` the primary keys and look for entries where `n` is greater than one:
 
 ```{r}
+planes %>% 
+  count(tailnum) %>% 
+  filter(n > 1)
 
-
-
+weather %>% 
+  count(year, month, day, hour, origin) %>% 
+  filter(n > 1)
 ```
 
 Sometimes a table doesn't have an explicit primary key: each row is an observation, but no combination of variables reliably identifies it. For example, what's the primary key in the `flights` table? You might think it would be the date plus the flight or tail number, but neither of those are unique:
 
 ```{r}
+flights %>% 
+  count(year, month, day, flight) %>% 
+  filter(n > 1)
 
-
+flights %>% 
+  count(year, month, day, tailnum) %>% 
+  filter(n > 1)
 ```
 
 When starting to work with this data, I had naively assumed that each flight number would be only used once per day: that would make it much easier to communicate problems with a specific flight. Unfortunately that is not the case! If a table lacks a primary key, it's sometimes useful to add one with `mutate()` and `row_number()`. That makes it easier to match observations if you've done some filtering and want to check back in with the original data. This is called a __surrogate key__.
@@ -165,6 +204,16 @@ A primary key and the corresponding foreign key in another table form a __relati
 
 1.  Add a surrogate key to `flights`.
 
+
+I add the column flight_id as a surrogate key. I sort the data prior to making the key, even though it is not strictly necessary, so the order of the rows has some meaning.
+
+
+flights %>%
+  arrange(year, month, day, sched_dep_time, carrier, flight) %>%
+  mutate(flight_id = row_number()) %>%
+  glimpse()
+
+
 ## Mutating joins {#mutating-joins}
 
 The first tool we'll look at for combining a pair of tables is the __mutating join__. A mutating join allows you to combine variables from two tables. It first matches observations by their keys, then copies across variables from one table to the other.
@@ -172,7 +221,9 @@ The first tool we'll look at for combining a pair of tables is the __mutating jo
 Like `mutate()`, the join functions add variables to the right, so if you have a lot of variables already, the new variables won't get printed out. For these examples, we'll make it easier to see what's going on in the examples by creating a narrower dataset:
 
 ```{r}
-
+flights2 <- flights %>% 
+  select(year:day, hour, origin, dest, tailnum, carrier)
+flights2
 ```
 
 (Remember, when you're in RStudio, you can also use `View()` to avoid this problem.)
@@ -180,10 +231,20 @@ Like `mutate()`, the join functions add variables to the right, so if you have a
 Imagine you want to add the full airline name to the `flights2` data. You can combine the `airlines` and `flights2` data frames with `left_join()`:
 
 ```{r}
-
-
+flights2 %>%
+  select(-origin, -dest) %>% 
+  left_join(airlines, by = "carrier")
 ```
 
+The result of joining airlines to flights2 is an additional variable: `name`. This is why I call this type of join a mutating join. In this case, you could have got to the same place using `mutate()` and R's base subsetting:
+
+```{r}
+flights2 %>%
+  select(-origin, -dest) %>% 
+  mutate(name = airlines$name[match(carrier, airlines$carrier)])
+```
+
+But this is hard to generalise when you need to match multiple variables, and takes close reading to figure out the overall intent.
 
 The following sections explain, in detail, how mutating joins work. You'll start by learning a useful visual representation of joins. We'll then use that to explain the four mutating join functions: the inner join, and the three outer joins. When working with real data, keys don't always uniquely identify observations, so next we'll talk about what happens when there isn't a unique match. Finally, you'll learn how to tell dplyr which variables are the keys for a given join.
 
@@ -238,8 +299,8 @@ knitr::include_graphics("diagrams/join-inner.png")
 The output of an inner join is a new data frame that contains the key, the x values, and the y values. We use `by` to tell dplyr which variable is the key:
 
 ```{r}
-
-
+x %>% 
+  inner_join(y, by = "key")
 ```
 
 The most important property of an inner join is that unmatched rows are not included in the result. This means that generally inner joins are usually not appropriate for use in analysis because it's too easy to lose observations.
@@ -340,9 +401,10 @@ So far, the pairs of tables have always been joined by a single variable, and th
 Exercise: 
 I want to know what the weather was for each flight.
 
-```{r}
-    
-```
+    ```{r}
+    flights2 %>% 
+      left_join(weather)
+    ```
 
   * A character vector, `by = "x"`. This is like a natural join, but uses only
     some of the common variables. 
@@ -351,10 +413,10 @@ Exercise:
 I want to have details on the particular type of aircraft used for a flight.
     
 
-```{r}
-    
-
-```
+    ```{r}
+    flights2 %>% 
+      left_join(planes)
+    ```
 
 What went wrong? 
 
@@ -384,16 +446,73 @@ How do I fix it?
     need to specify which one we want to join to:
 
     ```{r}
+    flights2 %>% 
+      left_join(airports, c("dest" = "faa"))
     
-    
+    flights2 %>% 
+      left_join(airports, c("origin" = "faa"))
     ```
 
 ### Exercises
 
 1.  Is there a relationship between the age of a plane and its delays?
 
+The question does not specify whether the relationship is with departure delay or arrival delay. I will look at both.
+
+To compare the age of the plane to flights delay, I merge flights with the planes, which contains a variable plane_year, with the year in which the plane was built. To look at the relationship between plane age and departure delay, I will calculate the average arrival and departure delay for each age of a flight. Since there are few planes older than 25 years, so I truncate age at 25 years.
+
+plane_cohorts <- inner_join(flights,
+  select(planes, tailnum, plane_year = year),
+  by = "tailnum"
+) %>%
+  mutate(age = year - plane_year) %>%
+  filter(!is.na(age)) %>%
+  mutate(age = if_else(age > 25, 25L, age)) %>%
+  group_by(age) %>%
+  summarise(
+    dep_delay_mean = mean(dep_delay, na.rm = TRUE),
+    dep_delay_sd = sd(dep_delay, na.rm = TRUE),
+    arr_delay_mean = mean(arr_delay, na.rm = TRUE),
+    arr_delay_sd = sd(arr_delay, na.rm = TRUE),
+    n_arr_delay = sum(!is.na(arr_delay)),
+    n_dep_delay = sum(!is.na(dep_delay))
+  )
+I will look for a relationship between departure delay and age by plotting age against the average departure delay. The average departure delay is increasing for planes with ages up until 10 years. After that the departure delay decreases or levels off. The decrease in departure delay could be because older planes with many mechanical issues are removed from service or because air lines schedule these planes with enough time so that mechanical issues do not delay them.
+
+ggplot(plane_cohorts, aes(x = age, y = dep_delay_mean)) +
+  geom_point() +
+  scale_x_continuous("Age of plane (years)", breaks = seq(0, 30, by = 10)) +
+  scale_y_continuous("Mean Departure Delay (minutes)")
+
+
+There is a similar relationship in arrival delays. Delays increase with the age of the plane until ten years, then it declines and flattens out.
+
+ggplot(plane_cohorts, aes(x = age, y = arr_delay_mean)) +
+  geom_point() +
+  scale_x_continuous("Age of Plane (years)", breaks = seq(0, 30, by = 10)) +
+  scale_y_continuous("Mean Arrival Delay (minutes)")
+
+
+
 1.  What weather conditions make it more likely to see a delay?
 
+Almost any amount of precipitation is associated with a delay. However, there is not a strong a trend above 0.02 in. of precipitation.
+
+flight_weather <-
+  flights %>%
+  inner_join(weather, by = c(
+    "origin" = "origin",
+    "year" = "year",
+    "month" = "month",
+    "day" = "day",
+    "hour" = "hour"
+  ))
+
+flight_weather %>%
+  group_by(precip) %>%
+  summarise(delay = mean(dep_delay, na.rm = TRUE)) %>%
+  ggplot(aes(x = precip, y = delay)) +
+  geom_line() + geom_point()
 
 
 
@@ -407,14 +526,17 @@ Filtering joins match observations in the same way as mutating joins, but affect
 Semi-joins are useful for matching filtered summary tables back to the original rows. For example, imagine you've found the top ten most popular destinations:
 
 ```{r}
-
+top_dest <- flights %>%
+  count(dest, sort = TRUE) %>%
+  head(10)
+top_dest
 ```
 
 Now you want to find each flight that went to one of those destinations. You could construct a filter yourself:
 
 ```{r}
-
-
+flights %>% 
+  filter(dest %in% top_dest$dest)
 ```
 
 But it's difficult to extend that approach to multiple variables. For example, imagine that you'd found the 10 days with highest average delays. How would you construct the filter statement that used `year`, `month`, and `day` to match it back to `flights`?
@@ -422,8 +544,8 @@ But it's difficult to extend that approach to multiple variables. For example, i
 Instead you can use a semi-join, which connects the two tables like a mutating join, but instead of adding new columns, only keeps the rows in `x` that have a match in `y`:
 
 ```{r}
-
-
+flights %>% 
+  semi_join(top_dest)
 ```
 
 Graphically, a semi-join looks like this:
@@ -447,8 +569,9 @@ knitr::include_graphics("diagrams/join-anti.png")
 Anti-joins are useful for diagnosing join mismatches. For example, when connecting `flights` and `planes`, you might be interested to know that there are many `flights` that don't have a match in `planes`:
 
 ```{r}
-
-
+flights %>%
+  anti_join(planes, by = "tailnum") %>%
+  count(tailnum, sort = TRUE)
 ```
 
 ### Exercises
@@ -457,17 +580,214 @@ Anti-joins are useful for diagnosing join mismatches. For example, when connecti
     tail numbers that don't have a matching record in `planes` have in common?
     (Hint: one variable explains ~90% of the problems.)
 
-1.  Filter flights to only show flights with planes that have flown at least 100
-    flights.
+Flights that have a missing tailnum all have missing values of arr_time, meaning that the flight was canceled.
+
+flights %>%
+  filter(is.na(tailnum), !is.na(arr_time)) %>%
+  nrow()
+#> [1] 0
+Many of the tail numbers that don’t have a matching value in planes are registered to American Airlines (AA) or Envoy Airlines (MQ). The documentation for planes states
+
+American Airways (AA) and Envoy Air (MQ) report fleet numbers rather than tail numbers so can’t be matched.
+
+flights %>%
+  anti_join(planes, by = "tailnum") %>%
+  count(carrier, sort = TRUE) %>%
+  mutate(p = n / sum(n))
+#> # A tibble: 10 x 3
+#>   carrier     n      p
+#>   <chr>   <int>  <dbl>
+#> 1 MQ      25397 0.483 
+#> 2 AA      22558 0.429 
+#> 3 UA       1693 0.0322
+#> 4 9E       1044 0.0198
+#> 5 B6        830 0.0158
+#> 6 US        699 0.0133
+#> # … with 4 more rows
+However, not all tail numbers appearing inflights from these carriers are missing from the planes table. I don’t know how to reconcile this discrepancy.
+
+
+
+
+1.  Filter flights to only show flights with planes that have flown at least 100    flights.
+
+First, I find all planes that have flown at least 100 flights. I need to filter flights that are missing a tail number otherwise all flights missing a tail number will be treated as a single plane.
+
+planes_gte100 <- flights %>%
+  filter(!is.na(tailnum)) %>%
+  group_by(tailnum) %>%
+  count() %>%
+  filter(n >= 100)
+Now, I will semi join the data frame of planes that have flown at least 100 flights to the data frame of flights to select the flights by those planes.
+
+flights %>%
+  semi_join(planes_gte100, by = "tailnum")
+#> # A tibble: 228,390 x 19
+#>    year month   day dep_time sched_dep_time dep_delay arr_time
+#>   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+#> 1  2013     1     1      517            515         2      830
+#> 2  2013     1     1      533            529         4      850
+#> 3  2013     1     1      544            545        -1     1004
+#> 4  2013     1     1      554            558        -4      740
+#> 5  2013     1     1      555            600        -5      913
+#> 6  2013     1     1      557            600        -3      709
+#> # … with 2.284e+05 more rows, and 12 more variables: sched_arr_time <int>,
+#> #   arr_delay <dbl>, carrier <chr>, flight <int>, tailnum <chr>,
+#> #   origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+#> #   minute <dbl>, time_hour <dttm>
+This can also be answered with a grouped mutate.
+
+
+flights %>%
+  filter(!is.na(tailnum)) %>%
+  group_by(tailnum) %>%
+  mutate(n = n()) %>%
+  filter(n >= 100)
+#> # A tibble: 228,390 x 20
+#> # Groups:   tailnum [1,217]
+#>    year month   day dep_time sched_dep_time dep_delay arr_time
+#>   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+#> 1  2013     1     1      517            515         2      830
+#> 2  2013     1     1      533            529         4      850
+#> 3  2013     1     1      544            545        -1     1004
+#> 4  2013     1     1      554            558        -4      740
+#> 5  2013     1     1      555            600        -5      913
+#> 6  2013     1     1      557            600        -3      709
+#> # … with 2.284e+05 more rows, and 13 more variables: sched_arr_time <int>,
+#> #   arr_delay <dbl>, carrier <chr>, flight <int>, tailnum <chr>,
+#> #   origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+#> #   minute <dbl>, time_hour <dttm>, n <int>
+
+
+Exercise
 
 
 1.  Find the 48 hours (over the course of the whole year) that have the worst
     delays. Cross-reference it with the `weather` data. Can you see any
     patterns?
 
+I will start by clarifying how I will be measuring the concepts in the question. There are three concepts that need to be defined more precisely.
+
+What is meant by “delay”? I will use departure delay. Since the weather data only contains data for the New York City airports, and departure delays will be more sensitive to New York City weather conditions than arrival delays.
+
+What is meant by “worst”? I define worst delay as the average departure delay per flight for flights scheduled to depart in that hour. For hour, I will use the scheduled departure time rather than the actual departure time. If planes are delayed due to weather conditions, the weather conditions during the scheduled time are more important than the actual departure time, at which point, the weather could have improved.
+
+What is meant by “48 hours over the course of the year”? This could mean two days, a span of 48 contiguous hours, or 48 hours that are not necessarily contiguous hours. I will find 48 not-necessarily contiguous hours. That definition makes better use of the methods introduced in this section and chapter.
+
+What is the unit of analysis? Although the question mentions only hours, I will use airport hours. The weather dataset has an observation for each airport for each hour. Since all the departure airports are in the vicinity of New York City, their weather should be similar, it will not be the same.
+
+First, I need to find the 48 hours with the worst delays. I group flights by hour of scheduled departure time and calculate the average delay. Then I select the 48 observations (hours) with the highest average delay.
+
+worst_hours <- flights %>%
+  mutate(hour = sched_dep_time %/% 100) %>%
+  group_by(origin, year, month, day, hour) %>%
+  summarise(dep_delay = mean(dep_delay, na.rm = TRUE)) %>%
+  ungroup() %>%
+  arrange(desc(dep_delay)) %>%
+  slice(1:48)
+Then I can use semi_join() to get the weather for these hours.
+
+weather_most_delayed <- semi_join(weather, worst_hours,
+  by = c(
+    "origin", "year",
+    "month", "day", "hour"
+  )
+)
+For weather, I’ll focus on precipitation, wind speed, and temperature. I will display these in both a table and a plot.
+Many of these observations have a higher than average wind speed (10 mph) or some precipitation. However, I would have expected the weather for the hours with the worst delays to be much worse.
+
+select(weather_most_delayed, temp, wind_speed, precip) %>%
+  print(n = 48)
+#> # A tibble: 48 x 3
+#>     temp wind_speed precip
+#>    <dbl>      <dbl>  <dbl>
+#>  1  27.0      13.8    0   
+#>  2  28.0      19.6    0   
+#>  3  28.9      28.8    0   
+#>  4  33.8       9.21   0.06
+#>  5  34.0       8.06   0.05
+#>  6  80.1       8.06   0   
+#>  7  86        13.8    0   
+#>  8  73.4       6.90   0.08
+#>  9  84.0       5.75   0   
+#> 10  78.8      18.4    0.23
+#> 11  53.6       0      0   
+#> 12  60.8      31.1    0.11
+#> 13  55.4      17.3    0.14
+#> 14  53.1       9.21   0.01
+#> 15  55.9      11.5    0.1 
+#> 16  55.4       8.06   0.15
+#> 17  57.0      29.9    0   
+#> 18  33.8      20.7    0.02
+#> 19  34.0      19.6    0.01
+#> 20  36.0      21.9    0.01
+#> 21  37.9      16.1    0   
+#> 22  32        13.8    0.12
+#> 23  60.1      33.4    0.14
+#> 24  60.8      11.5    0.02
+#> 25  62.1      17.3    0   
+#> 26  66.9      10.4    0   
+#> 27  66.9      13.8    0   
+#> 28  79.0      10.4    0   
+#> 29  77        16.1    0.07
+#> 30  75.9      13.8    0   
+#> 31  82.4       8.06   0   
+#> 32  86         9.21   0   
+#> 33  80.1       9.21   0   
+#> 34  80.6      11.5    0   
+#> 35  78.1       6.90   0   
+#> 36  75.2      10.4    0.01
+#> 37  73.9       5.75   0.03
+#> 38  73.9       8.06   0   
+#> 39  75.0       4.60   0   
+#> 40  75.0       4.60   0.01
+#> 41  80.1       0      0.01
+#> 42  80.1       0      0   
+#> 43  77        10.4    0   
+#> 44  82.0      10.4    0   
+#> 45  72.0      13.8    0.3 
+#> 46  72.0       4.60   0.03
+#> 47  51.1       4.60   0   
+#> 48  54.0       6.90   0
+ggplot(weather_most_delayed, aes(x = precip, y = wind_speed, color = temp)) +
+  geom_point()
+
+
+It’s hard to say much more than that without using the tools from Exploratory Data Analysis section to look for covariation between weather and flight delays using all flights. Implicitly in my informal analysis of trends in weather using only the 48 hours with the worst delays, I was comparing the weather in these hours to some belief I had about what constitutes “normal” or “good” weather. It would be better to actually use data to make that comparison.
+
+
+
 1.  You might expect that there's an implicit relationship between plane
     and airline, because each plane is flown by a single airline. Confirm
     or reject this hypothesis using the tools you've learned above.
+
+At each point in time, each plane is flown by a single airline. However, a plane can be sold and fly for multiple airlines. Logically, it is possible that a plane can fly for multiple airlines over the course of its lifetime. But, it is not necessarily the case that a plane will fly for more than one airline in this data, especially since it comprises only a year of data. So let’s check to see if there are any planes in the data flew for multiple airlines.
+
+First, find all distinct airline, plane combinations.
+
+planes_carriers <-
+  flights %>%
+  filter(!is.na(tailnum)) %>%
+  distinct(tailnum, carrier)
+The number of planes that have flown for more than one airline are those tailnum that appear more than once in the planes_carriers data.
+
+planes_carriers %>%
+  count(tailnum) %>%
+  filter(n > 1) %>%
+  nrow()
+#> [1] 17
+The names of airlines are easier to understand than the two-letter carrier codes. The airlines data frame contains the names of the airlines.
+
+
+carrier_transfer_tbl <- planes_carriers %>%
+  # keep only planes which have flown for more than one airline
+  group_by(tailnum) %>%
+  filter(n() > 1) %>%
+  # join with airlines to get airline names
+  left_join(airlines, by = "carrier") %>%
+  arrange(tailnum, carrier)
+
+
 
 ## Join problems
 

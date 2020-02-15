@@ -1,6 +1,8 @@
 ---
 title: "20_grammar_of_data_manipulation"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 # Grammar of Data Manipulation
@@ -27,14 +29,14 @@ library(nycflights13)
 library(tidyverse)
 ```
 
-Take careful note of the conflicts message that's printed when you load the tidyverse. It tells you that dplyr overwrites some functions in base R. If you want to use the base version of these functions after loading dplyr, you'll need to use their full names: `stats::filter()` and `stats::lag()`.
+Take careful note of the conflicts message that's printed when you load the tidyverse. 
 
 ### nycflights13
 
 To explore the basic data manipulation verbs of dplyr, we'll use `nycflights13::flights`. This data frame contains all 336,776 flights that departed from New York City in 2013. The data comes from the US [Bureau of Transportation Statistics](http://www.transtats.bts.gov/DatabaseInfo.asp?DB_ID=120&Link=0), and is documented in `?flights`.
 
 ```{r}
-flights
+
 ```
 
 You might notice that this data frame prints a little differently from other data frames you might have used in the past: it only shows the first few rows and all the columns that fit on one screen. (To see the whole dataset, you can run `View(flights)` which will open the dataset in the RStudio viewer). It prints differently because it's a __tibble__. Tibbles are data frames, but slightly tweaked to work better in the tidyverse. For now, you don't need to worry about the differences; we'll come back to tibbles in more detail in [wrangle](#wrangle-intro).
@@ -86,23 +88,22 @@ Together these properties make it easy to chain together multiple simple steps t
 `filter()` allows you to subset observations based on their values. The first argument is the name of the data frame. The second and subsequent arguments are the expressions that filter the data frame. For example, we can select all flights on January 1st with:
 
 ```{r}
-flights <- flights
-filter(flights, month == 1, day == 1)
+
 ```
 
 When you run that line of code, dplyr executes the filtering operation and returns a new data frame. dplyr functions never modify their inputs, so if you want to save the result, you'll need to use the assignment operator, `<-`:
 
 ```{r}
-jan1 <- filter(flights, month == 1, day == 1)
+
 ```
 
 
 *EXERCISE*
 
-How many flights left on December 12. 
+Filter out flights for December 12. 
 
 ```{r}
-filter(flights, month == 12, day == 12)
+
 ```
 
 
@@ -118,7 +119,7 @@ knitr::include_graphics("diagrams/transform-logical.png")
 The following code finds all flights that departed in November or December:
 
 ```{r, eval = FALSE}
-filter(flights, month == 11 | month == 12)
+
 ```
 
 The order of operations doesn't work like English. You can't write `filter(flights, month == 11 | 12)`, which you might literally translate into  "finds all flights that departed in November or December". Instead it finds all months that equal `11 | 12`, an expression that evaluates to `TRUE`. In a numeric context (like here), `TRUE` becomes one, so this finds all flights in January, not November or December. This is quite confusing!
@@ -133,7 +134,6 @@ Sometimes you can simplify complicated subsetting by remembering De Morgan's law
 
 ```{r, eval = FALSE}
 
-
 ```
 
 As well as `&` and `|`, R also has `&&` and `||`. Don't use them here! You'll learn when you should use them in [conditional execution].
@@ -144,7 +144,7 @@ As well as `&` and `|`, R also has `&&` and `||`. Don't use them here! You'll le
 How many flights had arrival delays between one and two hours? 
 
 ```{r}
-filter(flights, arr_delay>=60, arr_delay<=120)
+
 ```
 
 
@@ -159,16 +159,13 @@ filter(flights, arr_delay>=60, arr_delay<=120)
 One important feature of R that can make comparison tricky are missing values, or `NA`s ("not availables"). `NA` represents an unknown value so missing values are "contagious": almost any operation involving an unknown value will also be unknown.
 
 ```{r}
-NA > 5
-10 == NA
-NA + 10
-NA / 2
+
 ```
 
 The most confusing result is this one:
 
 ```{r}
-NA == NA
+
 ```
 
 It's easiest to understand why this is true with a bit more context:
@@ -189,13 +186,11 @@ If you want to determine if a value is missing, use `is.na()`:
 
 ```{r}
 
-
 ```
 
 `filter()` only includes rows where the condition is `TRUE`; it excludes both `FALSE` and `NA` values. If you want to preserve missing values, ask for them explicitly:
 
 ```{r}
-
 
 ```
 
@@ -204,24 +199,47 @@ If you want to determine if a value is missing, use `is.na()`:
 1.  Find all flights that
 
     1. Departed in summer (July, August, and September)
-```{r}
-filter(flights, month == 7 | month == 8 | month == 9)
-```
 
-    1. Arrived more than two hours late, but didn't leave late
 ```{r}
-filter(flights, arr_delay > 120, dep_delay<=0)
+
+```
+    1. Arrived more than two hours late, but didn't leave late
+
+```{r}
+
 ```
 
     1. Were delayed by at least an hour, but made up over 30 minutes in flight
+    
+    Were delayed by at least an hour, but made up over 30 minutes in flight. If a flight was delayed by at least an hour, then dep_delay >= 60. If the flight didn’t make up any time in the air, then its arrival would be delayed by the same amount as its departure, meaning dep_delay == arr_delay, or alternatively, dep_delay - arr_delay == 0. If it makes up over 30 minutes in the air, then the arrival delay must be at least 30 minutes less than the departure delay, which is stated as dep_delay - arr_delay > 30
+
+```{r}
+
+
+```
+
+
+
     1. Departed between midnight and 6am (inclusive)
+
+
+
+```{r}
+
+```
+
 
 1.  Another useful dplyr filtering helper is `between()`. What does it do?
     Can you use it to simplify the code needed to answer the previous 
     challenges?
 
+
+
+
 1.  How many flights have a missing `dep_time`? What other variables are 
     missing? What might these rows represent?
+
+
 
 
 ## Arrange rows with `arrange()`
@@ -229,15 +247,14 @@ filter(flights, arr_delay > 120, dep_delay<=0)
 `arrange()` works similarly to `filter()` except that instead of selecting rows, it changes their order. It takes a data frame and a set of column names (or more complicated expressions) to order by. If you provide more than one column name, each additional column will be used to break ties in the values of preceding columns:
 
 ```{r}
-arrange(flights, year, month, day)
+
 
 ```
 
 Use `desc()` to re-order by a column in descending order:
 
 ```{r}
-arrange(flights, desc(dep_delay)) %>% 
-  select(dep_delay)
+
 
 ```
 
@@ -249,10 +266,14 @@ Missing values are always sorted at the end:
 1.  How could you use `arrange()` to sort all missing values to the start?
     (Hint: use `is.na()`).
     
+    
 1.  Sort `flights` to find the most delayed flights. Find the flights that
     left earliest.
+    
+
 
 1.  Which flights travelled the longest? Which travelled the shortest?
+
 
 ## Select columns with `select()` {#select}
 
@@ -261,7 +282,7 @@ It's not uncommon to get datasets with hundreds or even thousands of variables. 
 `select()` is not terribly useful with the flights data because we only have 19 variables, but you can still get the general idea:
 
 ```{r}
-flights(year, tailnum:hour)
+
 
 
 ```
@@ -300,6 +321,8 @@ Another option is to use `select()` in conjunction with the `everything()` helpe
 
 1.  What happens if you include the name of a variable multiple times in
     a `select()` call?
+    
+
   
 
 ## Add new variables with `mutate()`
@@ -309,22 +332,20 @@ Besides selecting sets of existing columns, it's often useful to add new columns
 `mutate()` always adds new columns at the end of your dataset so we'll start by creating a narrower dataset so we can see the new variables. Remember that when you're in RStudio, the easiest way to see all the columns is `View()`.
 
 ```{r}
-flights_sml <- select(flights,
-                      year:day,
-                      ends_with("delay"),
-                      distance,
-                      air_time, 
-                      hour)
+
+
 
 ```
 
 Note that you can refer to columns that you've just created:
 
 ```{r}
-flight <- mutate(flights,
-       gain = dep_delay - arr_delay)
+
+
 
 ```
+
+
 
 
 ### Useful creation functions {#mutate-funs}
@@ -348,11 +369,8 @@ There are many functions for creating new variables that you can use with `mutat
     flights dataset, you can compute `hour` and `minute` from `dep_time` with:
     
     ```{r}
-    transmute(flights,
-      dep_time,
-      hour = dep_time %/% 100,
-      minute = dep_time %% 100
-    )
+
+    
     ```
   
 *   Logs: `log()`, `log2()`, `log10()`. Logarithms are an incredibly useful
@@ -370,9 +388,8 @@ There are many functions for creating new variables that you can use with `mutat
     conjunction with `group_by()`, which you'll learn about shortly.
     
     ```{r}
-    (x <- 1:10)
-    lag(x)
-    lead(x)
+
+    
     ```
   
 *   Cumulative and rolling aggregates: R provides functions for running sums,
@@ -382,9 +399,8 @@ There are many functions for creating new variables that you can use with `mutat
     package.
     
     ```{r}
-    x
-    cumsum(x)
-    cummean(x)
+
+
     ```
 
 *   Logical comparisons, `<`, `<=`, `>`, `>=`, `!=`, and `==`, which you learned about
@@ -398,9 +414,8 @@ There are many functions for creating new variables that you can use with `mutat
     ranks; use `desc(x)` to give the largest values the smallest ranks. 
     
     ```{r}
-    y <- c(1, 2, 2, NA, 3, 4)
-    min_rank(y)
-    min_rank(desc(y))
+
+
     ```
     
     If `min_rank()` doesn't do what you need, look at the variants
@@ -408,136 +423,101 @@ There are many functions for creating new variables that you can use with `mutat
     `ntile()`.  See their help pages for more details.
     
     ```{r}
-    row_number(y)
-    dense_rank(y)
-    percent_rank(y)
-    cume_dist(y)
+
+
     ```
 
 ### Exercises
 
-```{r, eval = FALSE, echo = FALSE}
-
-```
-
-1.  Currently `dep_time` and `sched_dep_time` are convenient to look at, but
+.  Currently `dep_time` and `sched_dep_time` are convenient to look at, but
     hard to compute with because they're not really continuous numbers. 
     Convert them to a more convenient representation of number of minutes
     since midnight.
 
+```{r, eval = FALSE, echo = FALSE}
 
-### Combining multiple operations with the pipe
 
-Let's say that we'd like to do the above calculation, and then look at the most-delayed flights, and filter out those with delays less than an hour. We could write the following:
-
-```{r, fig.width = 6}
 
 
 ```
 
-There are three steps to prepare this data:
+1
 
-This code is a little frustrating to write because we have to give each intermediate data frame a name, even though we don't care about it. Naming things is hard, so this slows down our analysis. 
 
-There's another way to tackle the same problem with the pipe, `%>%`:
 
-```{r}
 
-```
-
-This focuses on the transformations, not what's being transformed, which makes the code easier to read. You can read it as a series of imperative statements: group, then summarise, then filter. As suggested by this reading, a good way to pronounce `%>%` when reading code is "then".
-
-Behind the scenes, `x %>% f(y)` turns into `f(x, y)`, and `x %>% f(y) %>% g(z)` turns into `g(f(x, y), z)` and so on. You can use the pipe to rewrite multiple operations in a way that you can read left-to-right, top-to-bottom. We'll use piping frequently from now on because it considerably improves the readability of code, and we'll come back to it in more detail in [pipes].
-
-Working with the pipe is one of the key criteria for belonging to the tidyverse. 
 
 ## Grouped summaries with `summarise()`
 
-# Basic summary functions
+The last key verb is summarise(). It collapses a data frame to a single row:
 
 ```{r}
-library(nycflights13)
-library(tidyverse)
-flights_df <- nycflights13::flights
-```
 
-**Example 1: What is the average flight distance?**
 
-```{r Example 1}
-```
-
-It's often useful to check the column names really quickly. We can do
-this by simply calling `colnames()`
-
-```{r Reminder about colnames}
-flights_df %>%
-    colnames()
-```
-
-**Exercise 1: What is the minimum flight duration?** Find it
-using the approach in Example 1, but by calling `min()` instead
-of `mean()`! WARNING: You will run into a problem. When you do,
-put up your purple sticky [1.5 minutes]
-
-```{r Exercise 1}
-```
-
-**Example 2: Are there flights that are missing air_time values?**
-
-```{r Example 2}
-```
-
-We observed that...
-
-**Example 3: What is the 90th quantile of flight duration?**
-
-```{r Example 3}
-```
-
-**Exercise 2: What are the 25th, 50th, and 75th quantiles of flight**
-**duration?** Find these using only a single summarize() call! And make
-sure to give each value a reasonable variable name. Put up your green
-sticky when you're done. [1.5 minutes]
-
-```{r Exercise 2}
-```
-
-# Grouped summary functions
-
-**Example 4: How many flights did each carrier make?**
-
-```{r Example 4}
-```
-
-**Exercise 3: Within each month, can I get the average distance**
-**and median air time?** Use the approach from Example 4. WARNING:
-If you have a problem using `median()`, remember the issue that we
-ran into with `min()` and how we solved that. Put up your green
-sticky when you're done. [3 minutes]
-
-```{r Exercise 3}
-```
-
-**Example 5: How many flights were there between each airport**
-**pair?** For example, I want to know how many flights there were
-from JFK to LAX, how many  flights there were from LaGuardia to
-O'Hare, etc.
-
-```{r Example 5}
 ```
 
 
-**Exercise 4: Did any of the carriers use the same plane from the**
-**same origin to the same destination airport more than once in the same**
-**day? If so, how many times for each occurrence?** WARNING: you'll run
-into a problem with missing values for one of your variables. You
-will need to `filter()` them out at the beginning using a function
-that Dr. Spencer-Smith taught you earlier. HINT: To only see the
-combinations that occurred multiple times, you will need to perform
-a `filter()` at the end to get rid of the combinations that only
-occurred once. Put up your green sticky when you're done. [5 minutes]
+summarise() is not terribly useful unless we pair it with group_by(). This changes the unit of analysis from the complete dataset to individual groups. Then, when you use the dplyr verbs on a grouped data frame they’ll be automatically applied “by group”. For example, if we applied exactly the same code to a data frame grouped by date, we get the average delay per date:
 
-```{r Exercise 4}
+```{r}
+
+
 ```
 
 
+Together group_by() and summarise() provide one of the tools that you’ll use most commonly when working with dplyr: grouped summaries. But before we go any further with this, we need to introduce a powerful new idea: the pipe.
+
+## 5.6.1 Combining multiple operations with the pipe
+
+Imagine that we want to explore the relationship between the distance and average delay for each location. Using what you know about dplyr, you might write code like this:
+
+```{r}
+by_dest <- group_by(flights, dest)
+delay <- summarise(by_dest,
+  count = n(),
+  dist = mean(distance, na.rm = TRUE),
+  delay = mean(arr_delay, na.rm = TRUE)
+)
+delay <- filter(delay, count > 20, dest != "HNL")
+
+# It looks like delays increase with distance up to ~750 miles 
+# and then decrease. Maybe as flights get longer there's more 
+# ability to make up delays in the air?
+ggplot(data = delay, mapping = aes(x = dist, y = delay)) +
+  geom_point(aes(size = count), alpha = 1/3) +
+  geom_smooth(se = FALSE)
+#> `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+```
+
+
+There are three steps to prepare this data:
+
+Group flights by destination.
+
+Summarise to compute distance, average delay, and number of flights.
+
+Filter to remove noisy points and Honolulu airport, which is almost twice as far away as the next closest airport.
+
+This code is a little frustrating to write because we have to give each intermediate data frame a name, even though we don’t care about it. Naming things is hard, so this slows down our analysis.
+
+There’s another way to tackle the same problem with the pipe, %>%:
+
+```{r}
+
+
+delays <- flights %>% 
+  group_by(dest) %>% 
+  summarise(
+    count = n(),
+    dist = mean(distance, na.rm = TRUE),
+    delay = mean(arr_delay, na.rm = TRUE)
+  ) %>% 
+  filter(count > 20, dest != "HNL")
+```
+
+
+This focuses on the transformations, not what’s being transformed, which makes the code easier to read. You can read it as a series of imperative statements: group, then summarise, then filter. As suggested by this reading, a good way to pronounce %>% when reading code is “then”.
+
+Behind the scenes, x %>% f(y) turns into f(x, y), and x %>% f(y) %>% g(z) turns into g(f(x, y), z) and so on. You can use the pipe to rewrite multiple operations in a way that you can read left-to-right, top-to-bottom. We’ll use piping frequently from now on because it considerably improves the readability of code, and we’ll come back to it in more detail in pipes.
+
+Working with the pipe is one of the key criteria for belonging to the tidyverse. The only exception is ggplot2: it was written before the pipe was discovered. Unfortunately, the next iteration of ggplot2, ggvis, which does use the pipe, isn’t quite ready for prime time yet.

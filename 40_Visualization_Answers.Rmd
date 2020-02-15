@@ -27,7 +27,7 @@ That one line of code loads the core tidyverse; packages which you will use in a
 If you run this code and get the error message "there is no package called ‘tidyverse’", you'll need to first install it, then run `library()` once again.
 
 ```{r eval = FALSE}
-#install.packages("tidyverse")
+install.packages("tidyverse")
 library(tidyverse)
 ```
 
@@ -62,7 +62,8 @@ To learn more about `mpg`, open its help page by running `?mpg`.
 To plot `mpg`, run this code to put `displ` on the x-axis and `hwy` on the y-axis:
 
 ```{r}
-
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy))
 ```
 
 The plot shows a negative relationship between engine size (`displ`) and fuel efficiency (`hwy`). In other words, cars with big engines use more fuel. Does this confirm or refute your hypothesis about fuel efficiency and engine size?
@@ -103,22 +104,34 @@ The rest of this chapter will show you how to complete and extend this template 
 > "The greatest value of a picture is when it forces us to notice what we
 > never expected to see." --- John Tukey
 
-Let's look at a few cars have a higher miles per gallon than you might expect. 
+In the plot below, one group of points (highlighted in red) seems to fall outside of the linear trend. These cars have a higher mileage than you might expect. How can you explain these cars? 
 
 ```{r, echo = FALSE}
-
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) +
+  geom_point() + 
+  geom_point(data = dplyr::filter(mpg, displ > 5, hwy > 20), colour = "red", size = 2.2)
 ```
-How can you explain these cars? 
 
 Let's hypothesize that the cars are hybrids. One way to test this hypothesis is to look at the `class` value for each car. The `class` variable of the `mpg` dataset classifies cars into groups such as compact, midsize, and SUV. If the outlying points are hybrids, they should be classified as compact cars or, perhaps, subcompact cars (keep in mind that this data was collected before hybrid trucks and SUVs became popular).
 
-You can add a third variable, like `class`, to a two dimensional scatterplot by mapping it to an __aesthetic__. An aesthetic is a visual property of the objects in your plot. Aesthetics include things like the size, the shape, or the color of your points. You can display a point (like the one below) in different ways by changing the values of its aesthetic properties. Since we already use the word "value" to describe data, let's use the word "level" to describe aesthetic properties. 
+You can add a third variable, like `class`, to a two dimensional scatterplot by mapping it to an __aesthetic__. An aesthetic is a visual property of the objects in your plot. Aesthetics include things like the size, the shape, or the color of your points. You can display a point (like the one below) in different ways by changing the values of its aesthetic properties. Since we already use the word "value" to describe data, let's use the word "level" to describe aesthetic properties. Here we change the levels of a point's size, shape, and color to make the point small, triangular, or blue:
+
+```{r, echo = FALSE, asp = 1/4}
+ggplot() +
+  geom_point(aes(1, 1), size = 20) +
+  geom_point(aes(2, 1), size = 10) + 
+  geom_point(aes(3, 1), size = 20, shape = 17) + 
+  geom_point(aes(4, 1), size = 20, colour = "blue") + 
+  scale_x_continuous(NULL, limits = c(0.5, 4.5), labels = NULL) + 
+  scale_y_continuous(NULL, limits = c(0.9, 1.1), labels = NULL) + 
+  theme(aspect.ratio = 1/3)
+```
 
 You can convey information about your data by mapping the aesthetics in your plot to the variables in your dataset. For example, you can map the colors of your points to the `class` variable to reveal the class of each car.
 
 ```{r}
-
-
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy, color = class))
 ```
 
 (If you prefer British English, like Hadley, you can use `colour` instead of `color`.)
@@ -136,13 +149,11 @@ ggplot(data = mpg) +
 
 Or we could have mapped `class` to the _alpha_ aesthetic, which controls the transparency of the points, or to the shape aesthetic, which controls the shape of the points.
 
-```{r }
+```{r out.width = "50%", fig.align = 'default', warning = FALSE, fig.asp = 1/2, fig.cap =""}
 # Left
 ggplot(data = mpg) + 
   geom_point(mapping = aes(x = displ, y = hwy, alpha = class))
-```
 
-```{r }
 # Right
 ggplot(data = mpg) + 
   geom_point(mapping = aes(x = displ, y = hwy, shape = class))
@@ -195,21 +206,61 @@ ggplot(shapes, aes(x, y)) +
       geom_point(mapping = aes(x = displ, y = hwy, color = "blue"))
     ```
     
+The argumentcolour = "blue" is included within the mapping argument, and as such, it is treated as an aesthetic, which is a mapping between a variable and a value. In the expression, colour = "blue", "blue" is interpreted as a categorical variable which only takes a single value "blue". If this is confusing, consider how colour = 1:234 and colour = 1 are interpreted by aes().
+
+The following code does produces the expected result.
+
+ggplot(data = mpg) +
+  geom_point(mapping = aes(x = displ, y = hwy), colour = "blue")
+
+
 1.  Which variables in `mpg` are categorical? Which variables are continuous? 
     (Hint: type `?mpg` to read the documentation for the dataset). How
     can you see this information when you run `mpg`?
+    
+    The following list contains the categorical variables in mpg.
 
-1.  Map a continuous variable to `color`, `size`, and `shape`. How do
-    these aesthetics behave differently for categorical vs. continuous
-    variables? 
+model
+trans
+drv
+fl
+class
+The following list contains the continuous variables in mpg.
+
+displ
+year
+cyl
+cty
+hwy
+In the printed data frame, angled brackets at the top of each column provide type of each variable.
+
+
+
+
+
     
 1.  What happens if you map the same variable to multiple aesthetics? 
 
-1.  What does the `stroke` aesthetic do? What shapes does it work with?
-    (Hint: use `?geom_point`)
-    
+ggplot(mpg, aes(x = displ, y = hwy, colour = hwy, size = displ)) +
+  geom_point()
+
+
+In the above plot, hwy is mapped to both location on the y-axis and color, and displ is mapped to both location on the x-axis and size. The code works and produces a plot, even if it is a bad one. Mapping a single variable to multiple aesthetics is redundant. Because it is redundant information, in most cases avoid mapping a single variable to multiple aesthetics.
+
+
+
+
 1.  What happens if you map an aesthetic to something other than a variable 
     name, like `aes(colour = displ < 5)`?  Note, you'll also need to specify x and y.
+
+ggplot(mpg, aes(x = displ, y = hwy, colour = displ < 5)) +
+  geom_point()
+
+
+Aesthetics can also be mapped to expressions like displ < 5. The ggplot() function behaves as if a temporary variable was added to the data with with values equal to the result of the expression. In this case, the result of displ < 5 is a logical variable which takes values of TRUE or FALSE.
+
+This also explains why, in Exercise 3.3.1, the expression colour = "blue" created a categorical variable with only one category: “blue”.
+
 
 ## Common problems
 
@@ -235,13 +286,17 @@ One way to add additional variables is with aesthetics. Another way, particularl
 To facet your plot by a single variable, use `facet_wrap()`. The first argument of `facet_wrap()` should be a formula, which you create with `~` followed by a variable name (here "formula" is the name of a data structure in R, not a synonym for "equation"). The variable that you pass to `facet_wrap()` should be discrete. 
 
 ```{r}
-
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy)) + 
+  facet_wrap(~ class, nrow = 2)
 ```
 
 To facet your plot on the combination of two variables, add `facet_grid()` to your plot call. The first argument of `facet_grid()` is also a formula. This time the formula should contain two variable names separated by a `~`. 
 
 ```{r}
-
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy)) + 
+  facet_grid(drv ~ cyl)
 ```
 
 If you prefer to not facet in the rows or columns dimension, use a `.` instead of a variable name, e.g. `+ facet_grid(. ~ cyl)`.
@@ -305,18 +360,23 @@ Both plots contain the same x variable, the same y variable, and both describe t
 
 A __geom__ is the geometrical object that a plot uses to represent data. People often describe plots by the type of geom that the plot uses. For example, bar charts use bar geoms, line charts use line geoms, boxplots use boxplot geoms, and so on. Scatterplots break the trend; they use the point geom. As we see above, you can use different geoms to plot the same data. The plot on the left uses the point geom, and the plot on the right uses the smooth geom, a smooth line fitted to the data. 
 
-To change the geom in your plot, change the geom function that you add to `ggplot()`. Now let's layer these plots:
+To change the geom in your plot, change the geom function that you add to `ggplot()`. For instance, to make the plots above, you can use this code:
 
 ```{r eval = FALSE}
+# left
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy))
 
-
+# right
+ggplot(data = mpg) + 
+  geom_smooth(mapping = aes(x = displ, y = hwy))
 ```
 
 Every geom function in ggplot2 takes a `mapping` argument. However, not every aesthetic works with every geom. You could set the shape of a point, but you couldn't set the "shape" of a line. On the other hand, you _could_ set the linetype of a line. `geom_smooth()` will draw a different line, with a different linetype, for each unique value of the variable that you map to linetype.
 
 ```{r message = FALSE}
-
-
+ggplot(data = mpg) + 
+  geom_smooth(mapping = aes(x = displ, y = hwy, linetype = drv))
 ```
 
 Here `geom_smooth()` separates the cars into three lines based on their `drv` value, which describes a car's drivetrain. One line describes all of the points with a `4` value, one line describes all of the points with an `f` value, and one line describes all of the points with an `r` value. Here, `4` stands for four-wheel drive, `f` for front-wheel drive, and `r` for rear-wheel drive.
@@ -324,7 +384,9 @@ Here `geom_smooth()` separates the cars into three lines based on their `drv` va
 If this sounds strange, we can make it more clear by overlaying the lines on top of the raw data and then coloring everything according to `drv`. 
 
 ```{r echo = FALSE, message = FALSE}
-
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, color = drv)) + 
+  geom_point() +
+  geom_smooth(mapping = aes(linetype = drv))
 ```
 
 Notice that this plot contains two geoms in the same graph! If this makes you excited, buckle up. We will learn how to place multiple geoms in the same plot very soon.
@@ -333,53 +395,50 @@ ggplot2 provides over 30 geoms, and extension packages provide even more (see <h
 
 Many geoms, like `geom_smooth()`, use a single geometric object to display multiple rows of data. For these geoms, you can set the `group` aesthetic to a categorical variable to draw multiple objects. ggplot2 will draw a separate object for each unique value of the grouping variable. In practice, ggplot2 will automatically group the data for these geoms whenever you map an aesthetic to a discrete variable (as in the `linetype` example). It is convenient to rely on this feature because the group aesthetic by itself does not add a legend or distinguishing features to the geoms.
 
-Make a basic graph
-
-```{r}
+```{r, fig.width = 3, fig.align = 'default', out.width = "33%", message = FALSE}
 ggplot(data = mpg) +
   geom_smooth(mapping = aes(x = displ, y = hwy))
-```
               
-Add grouping              
-              
-```{r}
 ggplot(data = mpg) +
   geom_smooth(mapping = aes(x = displ, y = hwy, group = drv))
-```    
-Note that this does not generate a legend for you.
-
-
-Implicitly add grouping by assigning a catagorical variable to an aesthetic.
-```{r}
+    
 ggplot(data = mpg) +
   geom_smooth(
     mapping = aes(x = displ, y = hwy, color = drv),
+    show.legend = FALSE
   )
 ```
 
 To display multiple geoms in the same plot, add multiple geom functions to `ggplot()`:
 
 ```{r, message = FALSE}
-
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy)) +
+  geom_smooth(mapping = aes(x = displ, y = hwy))
 ```
 
 This, however, introduces some duplication in our code. Imagine if you wanted to change the y-axis to display `cty` instead of `hwy`. You'd need to change the variable in two places, and you might forget to update one. You can avoid this type of repetition by passing a set of mappings to `ggplot()`. ggplot2 will treat these mappings as global mappings that apply to each geom in the graph.  In other words, this code will produce the same plot as the previous code:
 
-```{r}
-
-
+```{r, eval = FALSE}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  geom_smooth()
 ```
 
 If you place mappings in a geom function, ggplot2 will treat them as local mappings for the layer. It will use these mappings to extend or overwrite the global mappings _for that layer only_. This makes it possible to display different aesthetics in different layers.
 
 ```{r, message = FALSE}
-
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_point(mapping = aes(color = class)) + 
+  geom_smooth()
 ```
 
 You can use the same idea to specify different `data` for each layer. Here, our smooth line displays just a subset of the `mpg` dataset, the subcompact cars. The local data argument in `geom_smooth()` overrides the global data argument in `ggplot()` for that layer only.
 
 ```{r, message = FALSE}
-
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_point(mapping = aes(color = class)) + 
+  geom_smooth(data = filter(mpg, class == "subcompact"), se = FALSE)
 ```
 
 (You'll learn how `filter()` works in the chapter on data transformations: for now, just know that this command selects only the subcompact cars.)

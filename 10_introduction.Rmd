@@ -177,8 +177,6 @@ this_is_a_really_long_name <- 2.5
 
 To inspect this object, try out RStudio's completion facility: type "this", press TAB, add characters until you have a unique prefix, then press return.
 
-Ooops, you made a mistake! `this_is_a_really_long_name` should have value 3.5 not 2.5. Use another keyboard shortcut to help you fix it.
-
 Make yet another assignment:
 
 ```{r}
@@ -205,6 +203,7 @@ function_name(arg1 = val1, arg2 = val2, ...)
 ```
 
 Let's try using `seq()` which makes regular **seq**uences of numbers and, while we're at it, learn more helpful features of RStudio. Type `se` and hit TAB. A popup shows you possible completions. Specify `seq()` by typing more (a "q") to disambiguate, or by using ↑/↓ arrows to select. Notice the floating tooltip that pops up, reminding you of the function's arguments and purpose. If you want more help, press F1 to get all the details in the help tab in the lower right pane. 
+
 Press TAB once more when you've selected the function you want. RStudio will add matching opening (`(`) and closing (`)`) parentheses for you. Type the arguments `1, 10` and hit return.
 
 ```{r}
@@ -216,24 +215,7 @@ Type this code and notice you get similar assistance with the paired quotation m
 x <- "hello world"
 ```
 
-Quotation marks and parentheses must always come in a pair. RStudio does its best to help you, but it's still possible to mess up and end up with a mismatch. If this happens, R will show you the continuation character "+":
-
-```
-> x <- "hello
-+
-```
-The `+` tells you that R is waiting for more input; it doesn't think you're done yet. Usually that means you've forgotten either a `"` or a `)`. Either add the missing pair, or press ESCAPE to abort the expression and try again.
-If you make an assignment, you don't get to see the value. You're then tempted to immediately double-check the result:
-
-```{r}
-y <- seq(1, 10, length.out = 5)
-y
-```
-
-This common action can be shortened by surrounding the assignment with parentheses, which causes assignment and "print to screen" to happen.
-```{r}
-(y <- seq(1, 10, length.out = 5))
-```
+Quotation marks and parentheses must always come in a pair. 
 
 Now look at your environment in the upper right pane:
 
@@ -250,9 +232,4 @@ Here you can see all of the objects that you've created.
     Look carefully! (This may seem like an exercise in pointlessness, but
     training your brain to notice even the tiniest difference will pay off
     when programming.)
-    
-
-1.  Press Alt + Shift + K. What happens? How can you get to the same place
-    using the menus?
-
-
+ 
