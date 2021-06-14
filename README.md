@@ -15,18 +15,16 @@ We'll cover the basics necessary for a reproducible and efficient analytics work
 - Cloning lesson (https://github.com/vanderbilt-data-science/r_analytics_workshop)
 - Literate computing with Notebooks
 - Grammar of Data Manipulation 
-- Grammar of Graphics
-- Running analytics projects in GitHub
-- Mini-analytics project introduction
+
 
 ### Day 2
-- Setting up an analytics project (see https://github.com/vanderbilt-data-science/analytics_r_template)
-- Using GitHub issues and GitHub project to manage projects (even if you're the only team member)
+- Reading and testing data
+- Grammar of Graphics
 - Validating data with pipeline tests
 - Exploring data
 - Reproducible analytics
-- Projects showcase
 - Pain Checklist
+- Projects discussion--How will you apply what you've learned?
 - Next steps
 
 ## Pre-Workshop Preparation
