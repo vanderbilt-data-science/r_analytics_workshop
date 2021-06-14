@@ -9,10 +9,10 @@ We'll cover the basics necessary for a reproducible and efficient analytics work
 
 ### Day 1
 
+- Cloning lesson (https://github.com/vanderbilt-data-science/r_analytics_workshop)
 - Discussion: Analytics pain points
 - Analytics workflow
 - Tour of RStudio 
-- Cloning lesson (https://github.com/vanderbilt-data-science/r_analytics_workshop)
 - Literate computing with Notebooks
 - Grammar of Data Manipulation 
 
